@@ -133,8 +133,12 @@ _LP_PRESUNCAO = {
 }
 
 
-def _calc_simples(rbt12: float, anexo: str, fator_r: float = 0.0) -> dict:
-    """Calcula alíquota efetiva do Simples Nacional."""
+def _calc_simples(rbt12: float, anexo: str, fator_r: float = 0.0, receita_mes: float = 0.0) -> dict:
+    """Calcula alíquota efetiva do Simples Nacional.
+
+    `receita_mes`: receita do mês corrente (DAS = receita_mes × alíquota efetiva).
+    Se não informada, usa rbt12/12 como proxy.
+    """
     # Fator R: se >= 28% e atividade Anexo V, migra para III
     if anexo == "anexo_v" and fator_r >= 0.28:
         anexo = "anexo_iii"
@@ -146,10 +150,11 @@ def _calc_simples(rbt12: float, anexo: str, fator_r: float = 0.0) -> dict:
     if rbt12 > 4_800_000:
         return {"erro": "Receita bruta ultrapassa o limite do Simples Nacional (R$4.800.000)"}
 
+    base_mes = receita_mes if receita_mes else (rbt12 / 12)
     for limite, aliq_nominal, parcela_deduzir in tabela["faixas"]:
         if rbt12 <= limite:
             aliq_efetiva = (rbt12 * aliq_nominal - parcela_deduzir) / rbt12
-            imposto_mensal = (rbt12 / 12) * aliq_efetiva
+            das_mes = base_mes * aliq_efetiva
             return {
                 "regime": "Simples Nacional",
                 "anexo": tabela["nome"],
@@ -159,8 +164,9 @@ def _calc_simples(rbt12: float, anexo: str, fator_r: float = 0.0) -> dict:
                 "aliquota_nominal": f"{aliq_nominal:.2%}",
                 "parcela_deduzir": f"R${parcela_deduzir:,.2f}",
                 "aliquota_efetiva": f"{aliq_efetiva:.4%}",
-                "imposto_mensal_estimado": f"R${imposto_mensal:,.2f}",
-                "imposto_anual_estimado": f"R${imposto_mensal * 12:,.2f}",
+                "receita_do_mes": f"R${base_mes:,.2f}",
+                "das_do_mes": f"R${das_mes:,.2f}",
+                "imposto_anual_estimado": f"R${(rbt12 * aliq_efetiva):,.2f}",
             }
 
     return {"erro": "Faixa não encontrada"}
@@ -238,6 +244,7 @@ async def calculate_tax(
     anexo_simples: str = "anexo_iii",
     folha_salarios: float = 0.0,
     lucro_mensal: float = 0.0,
+    rbt12: float = 0.0,
 ) -> str:
     """Calcula carga tributária estimada para um regime tributário brasileiro.
 
@@ -245,17 +252,24 @@ async def calculate_tax(
 
     Args:
         regime: "simples", "lucro_presumido" ou "lucro_real"
-        receita_mensal: Receita bruta mensal em R$
+        receita_mensal: Receita bruta do MÊS corrente em R$ (base do DAS no Simples)
         atividade: "comercio", "industria", "servicos", "transporte_carga", "transporte_passageiros", "servicos_hospitalares", "revenda_combustiveis"
-        anexo_simples: Anexo do Simples — "anexo_i" a "anexo_v" (só para regime=simples)
+        anexo_simples: Anexo do Simples — "anexo_iii" a "anexo_v" para serviços. Para comércio/indústria é DERIVADO da atividade automaticamente (ignore).
         folha_salarios: Folha de salários mensal em R$ (para cálculo do fator R no Simples)
         lucro_mensal: Lucro mensal estimado em R$ (para Lucro Real)
+        rbt12: Receita bruta dos últimos 12 meses em R$ (define a faixa/alíquota). Se 0, assume receita_mensal × 12.
     """
-    rbt12 = receita_mensal * 12
+    rbt12_calc = rbt12 if rbt12 else receita_mensal * 12
 
     if regime == "simples":
+        # Anexo DERIVADO da atividade — não confiar na classificação do modelo
+        # (comércio = Anexo I, indústria = Anexo II; serviços usa o anexo informado)
+        if atividade == "comercio":
+            anexo_simples = "anexo_i"
+        elif atividade == "industria":
+            anexo_simples = "anexo_ii"
         fator_r = (folha_salarios / receita_mensal) if receita_mensal and folha_salarios else 0.0
-        result = _calc_simples(rbt12, anexo_simples, fator_r)
+        result = _calc_simples(rbt12_calc, anexo_simples, fator_r, receita_mes=receita_mensal)
     elif regime == "lucro_presumido":
         result = _calc_lucro_presumido(receita_mensal, atividade)
     elif regime == "lucro_real":
