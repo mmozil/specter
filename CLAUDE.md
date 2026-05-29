@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Summary
 
-Murdock é um agente IA especializado em direito tributário, contábil e fiscal brasileiro. Deploy em `murdock.hovio.com.br`. Usa Pydantic AI como framework de agente, MiniMax M2.5 como LLM primário (OpenAI-compatible API), Claude Sonnet como fallback, PostgreSQL+pgvector para RAG, e knowledge base alimentada por fontes oficiais gov.br + Q&A aprendidos via learning loop.
+Murdock é um agente IA especializado em direito tributário, contábil e fiscal brasileiro. Deploy em `murdock.hovio.com.br`. Usa Pydantic AI como framework de agente, **MiniMax-M2** como LLM primário (OpenAI-compatible API via `OpenAIProvider`), Claude Sonnet como fallback, PostgreSQL+pgvector para RAG, e knowledge base alimentada por fontes oficiais gov.br + Q&A aprendidos via learning loop.
+
+> **Config LLM (mai/2026):** env-based, zero hardcode, padrão Tier Agent — `DEFAULT_LLM_PROVIDER/MODEL/BASE_URL/API_KEY` + `FALLBACK_LLM_PROVIDER/MODEL`. `pydantic-ai` pinado em `==1.104.0` (na 1.x, `base_url`/`api_key` vão via `OpenAIProvider`, não direto no `OpenAIModel`). MiniMax-M2 é modelo de raciocínio: emite `<think>...</think>` no conteúdo — `_strip_reasoning()` + `_stream_filtered()` em `agent.py` removem isso da saída (stream e resposta final).
 
 ## Commands
 
@@ -28,7 +30,7 @@ ruff check src/ --fix && ruff format src/
 main.py                    → FastAPI app (entry point, porta 8010)
 src/
   core/
-    config.py              → Pydantic Settings (DATABASE_URL, GEMINI_API_KEY, etc.)
+    config.py              → Pydantic Settings (DATABASE_URL, DEFAULT_LLM_*, FALLBACK_LLM_*, GEMINI_API_KEY p/ embeddings, etc.)
     database.py            → AsyncPG engine, session factory, init_db()
   models/
     tables.py              → Document, Chunk (pgvector 768d), Conversation, Message, Feedback, ClientProfile
@@ -41,7 +43,7 @@ src/
   tools/
     tools.py               → 7 tools Pydantic AI (search_law, calculate_tax, check_ncm, reform_2026, credit_recovery, calendar, jurisprudence)
   services/
-    agent.py               → Pydantic AI agent (Gemini Flash + fallback Claude), chat + chat_stream, dynamic prompt
+    agent.py               → Pydantic AI agent (MiniMax-M2 + fallback Claude), chat + chat_stream, dynamic prompt, _strip_reasoning/_stream_filtered (remove <think> do MiniMax)
     memory.py              → Client Memory: extração de perfil fiscal, persistência, injeção no prompt
     learning.py            → Learning Loop: aprende com feedback positivo + conversas engajadas → embeda Q&A no RAG
   api/
@@ -54,7 +56,8 @@ src/
 ## Key Patterns
 
 - **Hybrid Search (RRF)**: Dense (pgvector cosine) + Sparse (tsvector ts_rank_cd) + RRF fusion. Score = sum(1/(k + rank_i)), k=60.
-- **Agent Framework**: Pydantic AI v0.2+. Tools recebem `RunContext[MurdockDeps]` com sessão DB. Model: MiniMax M2.5 (OpenAI-compatible) → fallback Claude Sonnet. Histórico de conversa (últimas 20 msgs) enviado via `message_history` param.
+- **Agent Framework**: Pydantic AI `==1.104.0` (pinado). Tools recebem `RunContext[MurdockDeps]` com sessão DB. Model: MiniMax-M2 via `OpenAIModel(model, provider=OpenAIProvider(base_url, api_key))` → fallback Claude Sonnet. Histórico de conversa (últimas 20 msgs) enviado via `message_history` param.
+- **Reasoning strip (MiniMax-M2)**: o modelo emite o raciocínio em `<think>...</think>` no conteúdo. `_stream_filtered()` segura os tokens no streaming até passar o `</think>`; `_strip_reasoning()` limpa a resposta final e o histórico. Nunca vaza o pensamento pro usuário.
 - **SSE Streaming**: `sse-starlette` no backend, `EventSource` no frontend. Events: `token`, `done`, `error`.
 - **Embeddings**: Gemini embedding-001, 768 dimensões, LRU cache 1000 entries. Task types: RETRIEVAL_DOCUMENT (ingest), RETRIEVAL_QUERY (search).
 - **Crawler**: Domain validation (.gov.br, .jus.br, .leg.br, .ibpt.org.br). Browser-like headers. Parsers: HTML (BeautifulSoup), JSON API. Dedup via SHA-256 content hash.
@@ -70,9 +73,16 @@ src/
 ```bash
 DATABASE_URL=postgresql+asyncpg://murdock:murdock@localhost:5432/murdock
 REDIS_URL=redis://localhost:6379/5
-MINIMAX_API_KEY=...        # MiniMax M2.5 (LLM primário)
-GEMINI_API_KEY=...         # Google AI (embeddings only)
+# LLM primário (env-based, padrão Tier Agent — zero hardcode)
+DEFAULT_LLM_PROVIDER=minimax
+DEFAULT_LLM_MODEL=MiniMax-M2
+DEFAULT_LLM_BASE_URL=https://api.minimax.io/v1
+DEFAULT_LLM_API_KEY=...    # chave MiniMax COM saldo (sk-cp-...) — sk-api-... estava sem saldo
+# Fallback
+FALLBACK_LLM_PROVIDER=anthropic
+FALLBACK_LLM_MODEL=claude-sonnet-4-20250514
 ANTHROPIC_API_KEY=...      # Claude Sonnet (fallback LLM)
+GEMINI_API_KEY=...         # Google AI (embeddings only)
 API_KEY=...                # Auth para endpoints admin
 ```
 
@@ -94,6 +104,6 @@ API_KEY=...                # Auth para endpoints admin
 - **Coolify PostgreSQL**: `sk4csooc8g8owkkk444sckos` (pgvector:pg16)
 - **Coolify Redis**: `yg800wc0kws4k8o444g44gg4`
 - **Coolify Project**: `s88c48s0kg884ck8s0gow440` (Hovio)
-- **Deploy trigger**: `curl -s "https://apps.cloudesneper.com.br/api/v1/deploy?uuid=xw0wks4oo0gcsossss4kowc4&force=false" -H "Authorization: Bearer 5|claude-deploy-token-2026"`
+- **Deploy trigger** (MANUAL — sem webhook GitHub, `git push` NÃO deploya): `curl -s "https://coolify.tier.finance/api/v1/deploy?uuid=xw0wks4oo0gcsossss4kowc4&force=false" -H "Authorization: Bearer 5|claude-deploy-token-2026"` · poll: `GET /api/v1/deployments/<deployment_uuid>`
 - **Docker build**: Python 3.12-slim, porta 8010
 - **DB**: PostgreSQL 16 + pgvector (docker-compose inclui)

@@ -83,6 +83,7 @@ CF/88 → CTN → LCs (87, 116, 123, 214) → Leis Ordinárias → Decretos → 
 - "Simples é sempre mais barato" (depende de faturamento, atividade, fator R)
 - "ICMS é 18%" (depende de UF, NCM, operação, benefício)
 - "PIS/Cofins é 3,65%" (errado no não-cumulativo: 1,65% + 7,6%)
+- "Lucro Presumido é viável acima de R$78M/ano" (PROIBIDO — acima de R$78M/ano é Lucro Real OBRIGATÓRIO, Lei 9.718/98 art. 14)
 
 ## Formato
 
@@ -94,7 +95,7 @@ CF/88 → CTN → LCs (87, 116, 123, 214) → Leis Ordinárias → Decretos → 
 
 ## Referência 2026
 
-Salário mínimo R$1.518 · Teto INSS R$8.475,55 · MEI R$81k/ano · Simples R$4,8M/ano · Sublimite ICMS/ISS R$3,6M · IRPF isento até R$5k/mês · Dividendos isentos até R$50k/mês, 10% acima · CBS 0,9% + IBS 0,1% (teste 2026, LC 214/2025)
+Salário mínimo R$1.518 · Teto INSS R$8.475,55 · MEI R$81k/ano · Simples R$4,8M/ano · Sublimite ICMS/ISS R$3,6M · **Lucro Presumido até R$78M/ano (acima = Lucro Real obrigatório)** · IRPF isento até R$5k/mês · Dividendos isentos até R$50k/mês, 10% acima · CBS 0,9% + IBS 0,1% (teste 2026, LC 214/2025)
 
 ## Personalidade
 
