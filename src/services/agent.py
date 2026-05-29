@@ -1,5 +1,6 @@
 """Agente Matt Murdock — especialista tributário brasileiro com Pydantic AI."""
 import logging
+import re
 import time
 import uuid
 from typing import Optional
@@ -134,6 +135,52 @@ murdock_agent = Agent(
 DEFAULT_CLIENT_ID = "anonymous"
 
 
+# ── Filtro de raciocínio ─────────────────────────────────────────────────────
+# Modelos de raciocínio (MiniMax-M2 etc.) emitem o pensamento em <think>...</think>
+# dentro do próprio conteúdo. Nunca deve vazar pro usuário.
+
+def _strip_reasoning(text: str) -> str:
+    """Remove blocos <think>...</think> da saída final."""
+    if not text:
+        return text
+    cleaned = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    return cleaned.strip()
+
+
+async def _stream_filtered(result, full_response: list):
+    """Streama os deltas de texto suprimindo o bloco <think>...</think>.
+
+    `full_response` acumula o texto cru (pra salvar/limpar depois).
+    """
+    emit_buffer = ""
+    state = None  # None=indeciso, True=dentro do <think>, False=já liberou
+    async for chunk in result.stream_text(delta=True):
+        full_response.append(chunk)
+        if state is False:
+            yield chunk
+            continue
+        emit_buffer += chunk
+        if state is None:
+            ls = emit_buffer.lstrip()
+            if not ls:
+                continue
+            if ls.startswith("<think>"):
+                state = True
+            elif "<think>".startswith(ls[: len("<think>")]):
+                continue  # prefixo parcial ("<th"), aguarda mais chunks
+            else:
+                state = False  # resposta sem bloco de raciocínio
+                yield emit_buffer
+                emit_buffer = ""
+                continue
+        if state is True and "</think>" in emit_buffer:
+            after = emit_buffer.split("</think>", 1)[1].lstrip("\n")
+            state = False
+            emit_buffer = ""
+            if after:
+                yield after
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Serviço de Conversa
 # ═══════════════════════════════════════════════════════════════════════════
@@ -265,7 +312,7 @@ async def chat(
             logger.error(f"Fallback também falhou: {e2}")
             raise
 
-    response_text = result.output
+    response_text = _strip_reasoning(result.output)
     latency = int((time.time() - start) * 1000)
 
     # Salvar resposta
@@ -336,9 +383,8 @@ async def chat_stream(
         async with murdock_agent.run_stream(
             full_prompt, deps=deps, message_history=message_history
         ) as result:
-            async for chunk in result.stream_text(delta=True):
-                full_response.append(chunk)
-                yield {"event": "token", "data": chunk}
+            async for piece in _stream_filtered(result, full_response):
+                yield {"event": "token", "data": piece}
     except Exception as e:
         logger.warning(f"MiniMax stream falhou ({e}), tentando fallback...")
         model_used = fallback_model
@@ -348,15 +394,14 @@ async def chat_stream(
                 full_prompt, deps=deps, model=fallback_model,
                 message_history=message_history,
             ) as result:
-                async for chunk in result.stream_text(delta=True):
-                    full_response.append(chunk)
-                    yield {"event": "token", "data": chunk}
+                async for piece in _stream_filtered(result, full_response):
+                    yield {"event": "token", "data": piece}
         except Exception as e2:
             logger.error(f"Fallback stream falhou: {e2}")
             yield {"event": "error", "data": f"Erro: {e2}"}
             return
 
-    response_text = "".join(full_response)
+    response_text = _strip_reasoning("".join(full_response))
     latency = int((time.time() - start) * 1000)
 
     # Salvar resposta
