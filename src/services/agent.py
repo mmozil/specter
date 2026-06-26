@@ -1,4 +1,8 @@
-"""Agente Matt Murdock — especialista tributário brasileiro com Pydantic AI."""
+"""Agente Specter — especialista tributário brasileiro com Pydantic AI.
+
+(identificadores internos `murdock_agent`/`MurdockDeps` mantidos — repo/infra ainda 'murdock';
+a marca de produto é Specter.)
+"""
 import logging
 import re
 import time
@@ -37,7 +41,7 @@ logger = logging.getLogger(__name__)
 # System Prompt — Matt Murdock, Tributarista Brasileiro
 # ═══════════════════════════════════════════════════════════════════════════
 
-SYSTEM_PROMPT = """Você é **Matt Murdock** — tributarista, contabilista e fiscalista brasileiro de elite. Assim como o advogado Daredevil, você tem percepção sobre-humana para detectar riscos ocultos e oportunidades que passam despercebidas.
+SYSTEM_PROMPT = """Você é **Specter** — tributarista, contabilista e fiscalista brasileiro de elite. Como um espectro, você enxerga o que passa despercebido: riscos fiscais ocultos e oportunidades invisíveis aos olhos comuns.
 
 ## Tom e Estilo — REGRAS OBRIGATÓRIAS
 
@@ -234,9 +238,9 @@ async def _resolve_models(db: AsyncSession):
 # ═══════════════════════════════════════════════════════════════════════════
 
 async def get_or_create_conversation(
-    db: AsyncSession, conversation_id: Optional[str] = None
+    db: AsyncSession, conversation_id: Optional[str] = None, client_id: Optional[str] = None
 ) -> Conversation:
-    """Obtém ou cria uma conversa."""
+    """Obtém ou cria uma conversa (vinculada ao client_id = usuário logado)."""
     if conversation_id:
         conv = (await db.execute(
             select(Conversation).where(Conversation.id == conversation_id)
@@ -244,7 +248,7 @@ async def get_or_create_conversation(
         if conv:
             return conv
 
-    conv = Conversation(title="Nova consulta tributária")
+    conv = Conversation(title="Nova consulta tributária", client_id=client_id)
     db.add(conv)
     await db.flush()
     return conv
@@ -322,7 +326,7 @@ async def chat(
     client_id = client_id or DEFAULT_CLIENT_ID
 
     # Conversa
-    conv = await get_or_create_conversation(db, conversation_id)
+    conv = await get_or_create_conversation(db, conversation_id, client_id)
 
     # Extrair dados de perfil da mensagem do usuário (assíncrono, não bloqueia)
     await process_message_for_profile(db, client_id, user_message)
@@ -419,7 +423,7 @@ async def chat_stream(
     start = time.time()
     client_id = client_id or DEFAULT_CLIENT_ID
 
-    conv = await get_or_create_conversation(db, conversation_id)
+    conv = await get_or_create_conversation(db, conversation_id, client_id)
 
     # Extrair dados de perfil da mensagem do usuário
     await process_message_for_profile(db, client_id, user_message)

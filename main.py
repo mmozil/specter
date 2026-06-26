@@ -12,6 +12,7 @@ from src.core.database import async_session, init_db
 from src.api.routes import router
 from src.api.llm_routes import router as llm_router
 from src.api.feeds_routes import router as feeds_router
+from src.api.auth_routes import router as auth_router
 
 logging.basicConfig(
     level=logging.INFO if settings.ENVIRONMENT == "production" else logging.DEBUG,
@@ -81,6 +82,7 @@ app.add_middleware(
 )
 
 # API routes
+app.include_router(auth_router, prefix="/api")
 app.include_router(router, prefix="/api")
 app.include_router(llm_router, prefix="/api")
 app.include_router(feeds_router, prefix="/api")

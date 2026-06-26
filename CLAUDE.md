@@ -4,7 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Summary
 
-Murdock é um agente IA especializado em direito tributário, contábil e fiscal brasileiro. Deploy em `murdock.hovio.com.br`. Usa Pydantic AI como framework de agente, **MiniMax-M2** como LLM primário (OpenAI-compatible API via `OpenAIProvider`), Claude Sonnet como fallback, PostgreSQL+pgvector para RAG, e knowledge base alimentada por fontes oficiais gov.br + Q&A aprendidos via learning loop.
+Murdock é um agente IA especializado em direito tributário, contábil e fiscal brasileiro. Deploy em `murdock.hovio.com.br`.
+
+> **Marca = "Specter" (jun/2026).** O produto foi renomeado de "m.murdock" → **Specter** (persona "Matt Murdock/Daredevil" → "Specter", o espectro que enxerga riscos ocultos). O rebrand é **só de marca/UI + persona do system prompt**; repo (`mmozil/murdock`), domínio (`murdock.hovio.com.br`), Coolify e identificadores internos (`murdock_agent`, `MurdockDeps`) seguem `murdock`. Renomear domínio/repo é tarefa de infra separada (pendente, se desejado).
+
+## Autenticação (login + cadastro, jun/2026)
+
+Contas de usuário reais — o chat deixou de ser aberto. `User` model (`tables.py`), `src/core/security.py` (bcrypt direto + JWT via python-jose, TTL 7d, `get_current_user` Bearer), `src/api/auth_routes.py` (`/api/auth/register|login|me`). Tela login/cadastro no `index.html` (overlay full-screen estilo Specter/Harvey.ai, toggle login↔cadastro, token em localStorage `specter_token`, header `Authorization: Bearer`, logout no rodapé da sidebar).
+
+- **Rotas protegidas** por `get_current_user`: `/chat`, `/conversations*` (escopadas por `client_id == user.id`), `/profile*` (usa `user.id`, evita IDOR). `client_id` agora = id do usuário logado → memória/perfil/conversas por usuário (antes era anônimo global). `get_or_create_conversation` seta `conv.client_id`.
+- **Admin** (`/llm-providers*`, `/feeds*`) seguem em `X-API-Key` (separado do login de usuário).
+- Hash: `bcrypt` direto (trunca 72 bytes) — evita o gotcha passlib+pbkdf2. JWT assinado com `SECRET_KEY`.
+- Tabela `users` criada no startup (`Base.metadata.create_all`).
+ Usa Pydantic AI como framework de agente, **MiniMax-M2** como LLM primário (OpenAI-compatible API via `OpenAIProvider`), Claude Sonnet como fallback, PostgreSQL+pgvector para RAG, e knowledge base alimentada por fontes oficiais gov.br + Q&A aprendidos via learning loop.
 
 > **Config LLM (jun/2026):** DB-driven, configurável pela UI (padrão Tier Agent). O usuário escolhe quais LLMs, em que ordem e liga/desliga cada uma em **Configurações → LLM** (link "LLM" no rodapé da sidebar do chat). Persistido em `llm_providers` (sem redeploy). As envs `DEFAULT_LLM_*`/`FALLBACK_LLM_*` agora servem só de **SEED** no 1º boot (`seed_from_env_if_empty`). `pydantic-ai` pinado em `==1.104.0` (na 1.x, `base_url`/`api_key` vão via `OpenAIProvider`, não direto no `OpenAIModel`). MiniMax-M2 é modelo de raciocínio: emite `<think>...</think>` no conteúdo — `_strip_reasoning()` + `_stream_filtered()` em `agent.py` removem isso da saída (stream e resposta final).
 

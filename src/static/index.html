@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>m.murdock — Tax & Legal AI</title>
+  <title>Specter — Tax & Legal AI</title>
   <script src="https://cdn.jsdelivr.net/npm/marked@15/marked.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap');
@@ -800,14 +800,72 @@
     .llm-msg.ok { color: var(--green); }
     .llm-msg.err { color: var(--red); }
     .llm-empty { color: var(--gray-500); font-size: 13px; padding: 12px 0; }
+
+    /* ── Auth (login / cadastro) — editorial, coerente com o chat ── */
+    .auth-overlay { position: fixed; inset: 0; z-index: 200; background: var(--ink); display: none; align-items: center; justify-content: center; padding: 32px; }
+    .auth-overlay.show { display: flex; }
+    .auth-card { width: 100%; max-width: 380px; animation: authIn 0.5s var(--transition); }
+    @keyframes authIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+    .auth-brand { text-align: center; margin-bottom: 34px; }
+    .auth-brand .mark { font-family: var(--font-serif); font-size: 42px; font-weight: 600; color: var(--ivory); letter-spacing: -0.02em; line-height: 1; }
+    .auth-brand .mark .dot { color: var(--accent); }
+    .auth-brand .sub { margin-top: 12px; font-size: 11px; letter-spacing: 0.32em; text-transform: uppercase; color: var(--gray-500); }
+    .auth-divider { height: 1px; background: var(--gray-850); margin-bottom: 28px; }
+    .auth-title { font-family: var(--font-serif); font-size: 20px; color: var(--ivory); margin-bottom: 4px; }
+    .auth-desc { font-size: 13px; color: var(--gray-500); margin-bottom: 22px; }
+    .auth-field { margin-bottom: 14px; }
+    .auth-field label { display: block; font-size: 12px; color: var(--gray-500); margin-bottom: 6px; }
+    .auth-input { width: 100%; background: var(--gray-900); border: 1px solid var(--gray-800); color: var(--ivory); border-radius: var(--radius); padding: 11px 13px; font-size: 14px; font-family: var(--font-sans); transition: var(--transition); }
+    .auth-input::placeholder { color: var(--gray-600); }
+    .auth-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-dim); }
+    .auth-btn { width: 100%; margin-top: 10px; background: var(--accent); color: var(--ink); border: none; border-radius: var(--radius); padding: 12px; font-size: 14px; font-weight: 600; font-family: var(--font-sans); cursor: pointer; transition: var(--transition); }
+    .auth-btn:hover { background: #d8bc85; }
+    .auth-btn:disabled { opacity: 0.55; cursor: default; }
+    .auth-error { font-size: 12.5px; color: var(--red); margin-top: 12px; min-height: 16px; text-align: center; }
+    .auth-toggle { margin-top: 22px; text-align: center; font-size: 13px; color: var(--gray-500); }
+    .auth-toggle a { color: var(--accent); cursor: pointer; text-decoration: none; }
+    .auth-toggle a:hover { text-decoration: underline; }
+    .logout-link { cursor: pointer; }
   </style>
 </head>
 <body>
 
+  <!-- Auth (login / cadastro) -->
+  <div class="auth-overlay" id="authOverlay">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="mark">Specter<span class="dot">.</span></div>
+        <div class="sub">Tax &amp; Legal AI</div>
+      </div>
+      <div class="auth-divider"></div>
+      <div class="auth-title" id="authTitle">Entrar</div>
+      <div class="auth-desc" id="authDesc">Acesse seu consultor tributário.</div>
+      <form id="authForm" onsubmit="return submitAuth(event)">
+        <div class="auth-field" id="nameField" style="display:none">
+          <label>Nome</label>
+          <input class="auth-input" type="text" id="authName" autocomplete="name" placeholder="Seu nome">
+        </div>
+        <div class="auth-field">
+          <label>Email</label>
+          <input class="auth-input" type="email" id="authEmail" autocomplete="email" placeholder="voce@empresa.com" required>
+        </div>
+        <div class="auth-field">
+          <label>Senha</label>
+          <input class="auth-input" type="password" id="authPassword" autocomplete="current-password" placeholder="••••••••" required>
+        </div>
+        <button class="auth-btn" type="submit" id="authSubmit">Entrar</button>
+        <div class="auth-error" id="authError"></div>
+      </form>
+      <div class="auth-toggle" id="authToggle">
+        Não tem conta? <a onclick="toggleAuthMode()">Criar conta</a>
+      </div>
+    </div>
+  </div>
+
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-header">
-      <div class="logo">m.murdock</div>
+      <div class="logo">Specter</div>
       <div class="logo-sub">Tax & Legal AI</div>
     </div>
 
@@ -824,8 +882,8 @@
     <div class="conversations" id="convList"></div>
 
     <div class="sidebar-footer">
-      Fontes oficiais gov.br<br>
-      <a href="#" onclick="openLlmModal();return false;">LLM</a> &middot; <a href="/api/sources" target="_blank">Fontes</a> &middot; <a href="/docs" target="_blank">API</a> &middot; <a href="/api/learning/stats" target="_blank">Learning</a>
+      <span id="userEmail"></span><br>
+      <a href="#" onclick="openLlmModal();return false;">LLM</a> &middot; <a href="/api/sources" target="_blank">Fontes</a> &middot; <a href="/docs" target="_blank">API</a> &middot; <a class="logout-link" onclick="handleLogout()">Sair</a>
     </div>
   </aside>
 
@@ -842,7 +900,7 @@
     <div class="messages" id="messages">
       <div class="welcome" id="welcome">
         <div class="welcome-brand">
-          <h1>m.murdock</h1>
+          <h1>Specter</h1>
           <div class="tagline">Tributarista &middot; Contabilista &middot; Fiscalista</div>
         </div>
         <p>Consultor tributario de elite. Cada resposta fundamentada em legislacao oficial, jurisprudencia e doutrina. Direto ao ponto.</p>
@@ -939,7 +997,93 @@
       }
       return id;
     }
-    const CLIENT_ID = getClientId();
+    let CLIENT_ID = getClientId();
+
+    // ── Auth state ─────────────────────────────────────────
+    let authMode = 'login';
+    let authToken = localStorage.getItem('specter_token') || '';
+    let currentUser = null;
+
+    function authHeaders(extra) {
+      const h = extra || {};
+      if (authToken) h['Authorization'] = 'Bearer ' + authToken;
+      return h;
+    }
+    async function aFetch(url, opts) {
+      opts = opts || {};
+      opts.headers = authHeaders(opts.headers || {});
+      const r = await fetch(url, opts);
+      if (r.status === 401) { handleLogout(); throw new Error('unauthorized'); }
+      return r;
+    }
+    function showAuth() { document.getElementById('authOverlay').classList.add('show'); }
+    function hideAuth() { document.getElementById('authOverlay').classList.remove('show'); }
+    function setAuthError(m) { document.getElementById('authError').textContent = m || ''; }
+
+    function toggleAuthMode() {
+      authMode = authMode === 'login' ? 'register' : 'login';
+      const reg = authMode === 'register';
+      document.getElementById('nameField').style.display = reg ? 'block' : 'none';
+      document.getElementById('authTitle').textContent = reg ? 'Criar conta' : 'Entrar';
+      document.getElementById('authDesc').textContent = reg
+        ? 'Crie sua conta para começar.' : 'Acesse seu consultor tributário.';
+      document.getElementById('authSubmit').textContent = reg ? 'Criar conta' : 'Entrar';
+      document.getElementById('authToggle').innerHTML = reg
+        ? 'Já tem conta? <a onclick="toggleAuthMode()">Entrar</a>'
+        : 'Não tem conta? <a onclick="toggleAuthMode()">Criar conta</a>';
+      document.getElementById('authPassword').setAttribute('autocomplete', reg ? 'new-password' : 'current-password');
+      setAuthError('');
+    }
+
+    async function submitAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
+      const name = document.getElementById('authName').value.trim();
+      const btn = document.getElementById('authSubmit');
+      btn.disabled = true; setAuthError('');
+      try {
+        const endpoint = authMode === 'register' ? '/api/auth/register' : '/api/auth/login';
+        const body = authMode === 'register' ? { name, email, password } : { email, password };
+        const r = await fetch(endpoint, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+        });
+        const d = await r.json();
+        if (!r.ok) { setAuthError(d.detail || 'Falha na autenticação'); btn.disabled = false; return false; }
+        authToken = d.token;
+        localStorage.setItem('specter_token', authToken);
+        currentUser = d.user;
+        CLIENT_ID = d.user.id;
+        hideAuth();
+        initApp();
+      } catch (err) {
+        setAuthError('Erro de conexão. Tente novamente.');
+      }
+      btn.disabled = false;
+      return false;
+    }
+
+    function handleLogout() {
+      authToken = ''; currentUser = null;
+      localStorage.removeItem('specter_token');
+      conversations = []; conversationId = null;
+      updateConvList();
+      const ue = document.getElementById('userEmail');
+      if (ue) ue.textContent = '';
+      showAuth();
+    }
+
+    async function bootAuth() {
+      if (!authToken) { showAuth(); return; }
+      try {
+        const r = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + authToken } });
+        if (!r.ok) { handleLogout(); return; }
+        currentUser = await r.json();
+        CLIENT_ID = currentUser.id;
+        hideAuth();
+        initApp();
+      } catch (e) { showAuth(); }
+    }
 
     // ── Markdown Renderer (marked.js) ──────────────────────
     marked.setOptions({
@@ -1014,7 +1158,7 @@
       const div = document.createElement('div');
       div.className = `msg ${role}`;
       const av = role === 'user' ? 'Eu' : 'MM';
-      const nm = role === 'user' ? 'Voce' : 'm.murdock';
+      const nm = role === 'user' ? 'Voce' : 'Specter';
 
       const feedbackHtml = role === 'assistant' && msgId ? `
         <div class="msg-feedback" data-msg-id="${msgId}">
@@ -1046,7 +1190,7 @@
       div.innerHTML = `
         <div class="msg-avatar">MM</div>
         <div class="msg-body">
-          <div class="msg-name">m.murdock</div>
+          <div class="msg-name">Specter</div>
           <div class="msg-content" id="streamContent">
             <div class="typing-indicator"><span></span><span></span><span></span></div>
           </div>
@@ -1062,7 +1206,7 @@
     // ── Feedback ──────────────────────────────────────────
     async function sendFeedback(msgId, rating, btn) {
       try {
-        const res = await fetch('/api/feedback', {
+        const res = await aFetch('/api/feedback', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ message_id: msgId, rating }),
@@ -1084,7 +1228,7 @@
       document.getElementById('messages').innerHTML = `
         <div class="welcome" id="welcome">
           <div class="welcome-brand">
-            <h1>m.murdock</h1>
+            <h1>Specter</h1>
             <div class="tagline">Tributarista &middot; Contabilista &middot; Fiscalista</div>
           </div>
           <p>Consultor tributario de elite. Cada resposta fundamentada em legislacao oficial, jurisprudencia e doutrina. Direto ao ponto.</p>
@@ -1136,7 +1280,7 @@
 
     async function loadConversations() {
       try {
-        const r = await fetch('/api/conversations');
+        const r = await aFetch('/api/conversations');
         conversations = await r.json();
         updateConvList();
       } catch (e) { console.error('Erro conversas:', e); }
@@ -1153,7 +1297,7 @@
       msgs.innerHTML = '';
 
       try {
-        const r = await fetch(`/api/conversations/${id}/messages`);
+        const r = await aFetch(`/api/conversations/${id}/messages`);
         const messages = await r.json();
         messages.forEach(m => {
           const meta = m.model_used ? `${m.model_used.replace('google-gla:','').replace('anthropic:','').replace('openai:','')} · ${m.latency_ms || 0}ms` : '';
@@ -1166,7 +1310,7 @@
 
     async function deleteConv(id) {
       try {
-        await fetch(`/api/conversations/${id}`, { method: 'DELETE' });
+        await aFetch(`/api/conversations/${id}`, { method: 'DELETE' });
         conversations = conversations.filter(c => c.id !== id);
         if (conversationId === id) newConversation();
         updateConvList();
@@ -1186,7 +1330,7 @@
       addStreamMessage();
 
       try {
-        const response = await fetch('/api/chat', {
+        const response = await aFetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1249,7 +1393,7 @@
     // ── Profile ──────────────────────────────────────────
     async function loadProfile() {
       try {
-        const r = await fetch(`/api/profile/${CLIENT_ID}`);
+        const r = await aFetch(`/api/profile/${CLIENT_ID}`);
         const p = await r.json();
         const card = document.getElementById('profileCard');
         const items = document.getElementById('profileItems');
@@ -1439,11 +1583,16 @@
     });
 
     // ── Init ──────────────────────────────────────────────
-    document.getElementById('userInput').focus();
-    checkHealth();
-    loadConversations();
-    loadProfile();
+    function initApp() {
+      const ue = document.getElementById('userEmail');
+      if (ue && currentUser) ue.textContent = currentUser.email;
+      document.getElementById('userInput').focus();
+      checkHealth();
+      loadConversations();
+      loadProfile();
+    }
     setInterval(checkHealth, 30000);
+    bootAuth();
   </script>
 </body>
 </html>

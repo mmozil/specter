@@ -17,7 +17,8 @@ from sqlalchemy import select as sa_select
 
 from src.services.agent import chat, chat_stream
 from src.crawler.ingest import ingest_fonte, ingest_todas, get_status, update_search_vectors
-from src.models.tables import Conversation, Message, Feedback as FeedbackModel
+from src.models.tables import Conversation, Message, Feedback as FeedbackModel, User
+from src.core.security import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -43,16 +44,18 @@ def _check_api_key(x_api_key: str = Header(None)):
 async def chat_endpoint(
     req: ChatRequest,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Chat com o Murdock — streaming SSE ou resposta completa."""
+    """Chat com o Specter — streaming SSE ou resposta completa. Requer autenticação."""
+    client_id = str(user.id)  # client_id sempre = usuário logado (perfil/conversas por usuário)
     if req.stream:
         async def event_generator():
-            async for event in chat_stream(db, req.message, req.conversation_id, req.client_id):
+            async for event in chat_stream(db, req.message, req.conversation_id, client_id):
                 yield event
 
         return EventSourceResponse(event_generator())
 
-    result = await chat(db, req.message, req.conversation_id, req.client_id)
+    result = await chat(db, req.message, req.conversation_id, client_id)
     return ChatResponse(**result)
 
 
@@ -61,11 +64,14 @@ async def chat_endpoint(
 # ═══════════════════════════════════════════════════════════════════════════
 
 @router.get("/conversations")
-async def list_conversations(db: AsyncSession = Depends(get_db)):
-    """Lista conversas ordenadas por última atualização."""
+async def list_conversations(
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Lista as conversas DO USUÁRIO logado, por última atualização."""
     convs = (await db.execute(
         sa_select(Conversation)
-        .where(Conversation.total_messages > 0)
+        .where(Conversation.total_messages > 0, Conversation.client_id == str(user.id))
         .order_by(Conversation.updated_at.desc())
         .limit(50)
     )).scalars().all()
@@ -85,8 +91,14 @@ async def list_conversations(db: AsyncSession = Depends(get_db)):
 async def get_conversation_messages(
     conversation_id: str,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Retorna mensagens de uma conversa."""
+    """Retorna mensagens de uma conversa (só se for do usuário logado)."""
+    conv = (await db.execute(
+        sa_select(Conversation).where(Conversation.id == conversation_id)
+    )).scalar_one_or_none()
+    if not conv or conv.client_id != str(user.id):
+        raise HTTPException(status_code=404, detail="Conversa não encontrada")
     msgs = (await db.execute(
         sa_select(Message)
         .where(Message.conversation_id == conversation_id)
@@ -109,12 +121,13 @@ async def get_conversation_messages(
 async def delete_conversation(
     conversation_id: str,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Deleta uma conversa e suas mensagens."""
+    """Deleta uma conversa e suas mensagens (só se for do usuário logado)."""
     conv = (await db.execute(
         sa_select(Conversation).where(Conversation.id == conversation_id)
     )).scalar_one_or_none()
-    if not conv:
+    if not conv or conv.client_id != str(user.id):
         raise HTTPException(status_code=404, detail="Conversa não encontrada")
     await db.delete(conv)
     await db.commit()
@@ -306,8 +319,10 @@ async def sources_endpoint():
 async def get_profile_endpoint(
     client_id: str,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Retorna perfil do cliente."""
+    """Retorna o perfil fiscal do usuário logado (client_id derivado do token)."""
+    client_id = str(user.id)
     from src.services.memory import get_profile
     profile = await get_profile(db, client_id)
     if not profile:
@@ -334,8 +349,10 @@ async def update_profile_endpoint(
     client_id: str,
     req: dict,
     db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
 ):
-    """Atualiza perfil do cliente manualmente."""
+    """Atualiza o perfil fiscal do usuário logado."""
+    client_id = str(user.id)
     from src.services.memory import update_profile
     profile = await update_profile(db, client_id, req)
     await db.commit()
