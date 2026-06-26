@@ -8,8 +8,9 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from src.core.config import settings
-from src.core.database import init_db
+from src.core.database import async_session, init_db
 from src.api.routes import router
+from src.api.llm_routes import router as llm_router
 
 logging.basicConfig(
     level=logging.INFO if settings.ENVIRONMENT == "production" else logging.DEBUG,
@@ -26,6 +27,15 @@ async def lifespan(app: FastAPI):
     # Criar extensões + tabelas
     await init_db()
     logger.info("Database inicializado (pgvector + pg_trgm)")
+
+    # Seed dos provedores de LLM a partir do ambiente (idempotente — só no 1º boot)
+    try:
+        from src.services.llm_config import seed_from_env_if_empty
+
+        async with async_session() as db:
+            await seed_from_env_if_empty(db)
+    except Exception as e:  # noqa: BLE001
+        logger.warning("Seed de provedores de LLM falhou (seguindo sem): %s", e)
 
     yield
 
@@ -56,6 +66,7 @@ app.add_middleware(
 
 # API routes
 app.include_router(router, prefix="/api")
+app.include_router(llm_router, prefix="/api")
 
 # Static files (frontend)
 app.mount("/static", StaticFiles(directory="src/static"), name="static")

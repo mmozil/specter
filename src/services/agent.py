@@ -210,6 +210,25 @@ async def _stream_filtered(result, full_response: list):
                 yield after
 
 
+# ── Resolução dinâmica de modelo (DB-driven, padrão Tier Agent) ───────────────
+# O usuário escolhe quais LLMs, em que ordem, e liga/desliga cada uma via Configurações.
+# A cadeia vem do banco; o agente tenta na ordem e cai pro próximo se falhar.
+
+DISABLED_MSG = (
+    "⚠️ Nenhuma LLM está ativa no momento. Ative um provedor em **Configurações → LLM**."
+)
+
+
+async def _resolve_models(db: AsyncSession):
+    """Cadeia de modelos ativos. Sem nenhum cadastrado → rede de segurança do ambiente."""
+    from src.services.llm_config import NoProvidersConfigured, build_chain
+
+    try:
+        return await build_chain(db)
+    except NoProvidersConfigured:
+        return [(primary_model, {"temperature": 0.3, "max_tokens": 4096}, settings.DEFAULT_LLM_MODEL)]
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # Serviço de Conversa
 # ═══════════════════════════════════════════════════════════════════════════
@@ -319,27 +338,41 @@ async def chat(
     dynamic_ctx = await _build_dynamic_prompt(db, client_id)
     full_prompt = user_message + dynamic_ctx if dynamic_ctx else user_message
 
-    # Rodar agente
+    # Rodar agente — cadeia de modelos vinda do banco (escolha/ordem/on-off do usuário)
     deps = MurdockDeps(db=db)
-    model_name = settings.DEFAULT_LLM_MODEL
-    fallback_model = f"{settings.FALLBACK_LLM_PROVIDER}:{settings.FALLBACK_LLM_MODEL}"
+    from src.services.llm_config import ProvidersAllDisabled
 
     try:
-        result = await murdock_agent.run(
-            full_prompt, deps=deps, message_history=message_history
-        )
-        model_used = model_name
-    except Exception as e:
-        logger.warning(f"MiniMax falhou ({e}), tentando fallback Claude...")
+        chain = await _resolve_models(db)
+    except ProvidersAllDisabled:
+        # Respeita o desligamento: não inventa resposta com fallback escondido.
+        await save_message(db, str(conv.id), "assistant", DISABLED_MSG)
+        conv.total_messages = (conv.total_messages or 0) + 2
+        await db.commit()
+        return {
+            "conversation_id": str(conv.id),
+            "response": DISABLED_MSG,
+            "model": "none",
+            "latency_ms": 0,
+        }
+
+    result = None
+    model_used = None
+    last_err = None
+    for model_obj, msettings, label in chain:
         try:
             result = await murdock_agent.run(
-                full_prompt, deps=deps, model=fallback_model,
-                message_history=message_history,
+                full_prompt, deps=deps, model=model_obj,
+                model_settings=msettings, message_history=message_history,
             )
-            model_used = fallback_model
-        except Exception as e2:
-            logger.error(f"Fallback também falhou: {e2}")
-            raise
+            model_used = label
+            break
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            logger.warning(f"Provedor '{label}' falhou ({e}); tentando próximo...")
+    if result is None:
+        logger.error(f"Todos os provedores de LLM falharam: {last_err}")
+        raise last_err or RuntimeError("Nenhum provedor de LLM respondeu")
 
     response_text = _strip_reasoning(result.output)
     latency = int((time.time() - start) * 1000)
@@ -402,33 +435,44 @@ async def chat_stream(
     full_prompt = user_message + dynamic_ctx if dynamic_ctx else user_message
 
     deps = MurdockDeps(db=db)
-    model_name = settings.DEFAULT_LLM_MODEL
-    fallback_model = f"{settings.FALLBACK_LLM_PROVIDER}:{settings.FALLBACK_LLM_MODEL}"
-
-    full_response = []
-    model_used = model_name
+    from src.services.llm_config import ProvidersAllDisabled
 
     try:
-        async with murdock_agent.run_stream(
-            full_prompt, deps=deps, message_history=message_history
-        ) as result:
-            async for piece in _stream_filtered(result, full_response):
-                yield {"event": "token", "data": piece}
-    except Exception as e:
-        logger.warning(f"MiniMax stream falhou ({e}), tentando fallback...")
-        model_used = fallback_model
+        chain = await _resolve_models(db)
+    except ProvidersAllDisabled:
+        yield {"event": "token", "data": DISABLED_MSG}
+        await save_message(db, str(conv.id), "assistant", DISABLED_MSG)
+        conv.total_messages = (conv.total_messages or 0) + 2
+        await db.commit()
+        yield {
+            "event": "done",
+            "data": f'{{"conversation_id": "{conv.id}", "model": "none", "latency_ms": 0}}',
+        }
+        return
+
+    full_response = []
+    model_used = None
+    streamed_ok = False
+    last_err = None
+    for model_obj, msettings, label in chain:
         full_response = []
         try:
             async with murdock_agent.run_stream(
-                full_prompt, deps=deps, model=fallback_model,
-                message_history=message_history,
+                full_prompt, deps=deps, model=model_obj,
+                model_settings=msettings, message_history=message_history,
             ) as result:
                 async for piece in _stream_filtered(result, full_response):
                     yield {"event": "token", "data": piece}
-        except Exception as e2:
-            logger.error(f"Fallback stream falhou: {e2}")
-            yield {"event": "error", "data": f"Erro: {e2}"}
-            return
+            model_used = label
+            streamed_ok = True
+            break
+        except Exception as e:  # noqa: BLE001
+            last_err = e
+            logger.warning(f"Stream do provedor '{label}' falhou ({e}); tentando próximo...")
+    if not streamed_ok:
+        logger.error(f"Todos os provedores de LLM falharam no stream: {last_err}")
+        yield {"event": "error", "data": f"Erro: {last_err}"}
+        return
 
     response_text = _strip_reasoning("".join(full_response))
     latency = int((time.time() - start) * 1000)

@@ -749,6 +749,57 @@
       .welcome-brand h1 { font-size: 36px; }
       .msg { gap: 12px; }
     }
+
+    /* ── LLM Config Modal ─────────────────────────────────── */
+    .llm-overlay { position: fixed; inset: 0; background: rgba(15,14,13,0.72); backdrop-filter: blur(3px); z-index: 100; display: none; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 48px 16px; }
+    .llm-overlay.open { display: flex; }
+    .llm-modal { width: 100%; max-width: 720px; background: var(--gray-900); border: 1px solid var(--gray-800); border-radius: var(--radius-lg); box-shadow: 0 24px 64px rgba(0,0,0,0.5); }
+    .llm-modal-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid var(--gray-800); }
+    .llm-modal-head h3 { font-family: var(--font-serif); font-weight: 600; font-size: 19px; color: var(--ivory); }
+    .llm-modal-head p { font-size: 12px; color: var(--gray-500); margin-top: 3px; max-width: 520px; }
+    .llm-close { background: none; border: none; color: var(--gray-500); font-size: 26px; cursor: pointer; line-height: 1; padding: 0 4px; }
+    .llm-close:hover { color: var(--ivory); }
+    .llm-body { padding: 20px 24px 24px; }
+    .llm-key-row { display: flex; gap: 8px; margin-bottom: 18px; align-items: center; }
+    .llm-key-row input { flex: 1; }
+    .llm-providers { display: flex; flex-direction: column; gap: 8px; margin-bottom: 22px; }
+    .llm-card { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--gray-800); border-radius: var(--radius); background: var(--gray-850); }
+    .llm-card.inuse { border-color: var(--accent); background: var(--accent-dim); }
+    .llm-card .ord { display: flex; flex-direction: column; gap: 3px; }
+    .llm-card .ord button { background: none; border: 1px solid var(--gray-700); color: var(--gray-400); width: 22px; height: 17px; border-radius: 3px; cursor: pointer; font-size: 9px; line-height: 1; }
+    .llm-card .ord button:hover { color: var(--ivory); border-color: var(--gray-500); }
+    .llm-card .info { flex: 1; min-width: 0; }
+    .llm-card .info .name { font-size: 14px; color: var(--ivory); font-weight: 500; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+    .llm-card .info .meta { font-size: 11px; color: var(--gray-500); margin-top: 3px; font-family: var(--font-mono); }
+    .llm-badge { font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; padding: 2px 6px; border-radius: 3px; border: 1px solid var(--gray-700); color: var(--gray-400); }
+    .llm-badge.inuse, .llm-badge.recommended { color: var(--accent); border-color: var(--accent); }
+    .llm-badge.tested { color: var(--green); border-color: var(--green); }
+    .llm-card .acts { display: flex; gap: 6px; align-items: center; }
+    .llm-icon-btn { background: none; border: 1px solid var(--gray-700); color: var(--gray-400); border-radius: 3px; padding: 4px 8px; cursor: pointer; font-size: 11px; white-space: nowrap; }
+    .llm-icon-btn:hover { color: var(--ivory); border-color: var(--gray-500); }
+    .llm-icon-btn.danger:hover { color: var(--red); border-color: var(--red); }
+    .llm-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+    .llm-switch input { opacity: 0; width: 0; height: 0; }
+    .llm-switch .track { position: absolute; inset: 0; background: var(--gray-700); border-radius: 999px; transition: var(--transition); cursor: pointer; }
+    .llm-switch .track::before { content: ''; position: absolute; width: 14px; height: 14px; left: 3px; top: 3px; background: var(--ivory); border-radius: 50%; transition: var(--transition); }
+    .llm-switch input:checked + .track { background: var(--accent); }
+    .llm-switch input:checked + .track::before { transform: translateX(16px); }
+    .llm-add { border: 1px solid var(--gray-800); border-radius: var(--radius); padding: 16px; background: var(--gray-850); }
+    .llm-add h4 { font-size: 13px; color: var(--gray-300); margin-bottom: 12px; font-weight: 600; }
+    .llm-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .llm-field { display: flex; flex-direction: column; gap: 4px; }
+    .llm-field.full { grid-column: 1 / -1; }
+    .llm-field label { font-size: 11px; color: var(--gray-500); }
+    .llm-modal input, .llm-modal select { background: var(--gray-900); border: 1px solid var(--gray-700); color: var(--ivory); border-radius: var(--radius); padding: 8px 10px; font-size: 13px; font-family: var(--font-sans); width: 100%; }
+    .llm-modal input:focus, .llm-modal select:focus { outline: none; border-color: var(--accent); }
+    .llm-btn { background: var(--accent); color: var(--ink); border: none; border-radius: var(--radius); padding: 9px 16px; font-size: 13px; font-weight: 600; cursor: pointer; }
+    .llm-btn:hover { background: #d8bc85; }
+    .llm-btn.ghost { background: none; color: var(--gray-300); border: 1px solid var(--gray-700); }
+    .llm-btn.ghost:hover { color: var(--ivory); border-color: var(--gray-500); }
+    .llm-msg { font-size: 12px; min-height: 16px; }
+    .llm-msg.ok { color: var(--green); }
+    .llm-msg.err { color: var(--red); }
+    .llm-empty { color: var(--gray-500); font-size: 13px; padding: 12px 0; }
   </style>
 </head>
 <body>
@@ -774,7 +825,7 @@
 
     <div class="sidebar-footer">
       Fontes oficiais gov.br<br>
-      <a href="/docs" target="_blank">API</a> &middot; <a href="/api/sources" target="_blank">Fontes</a> &middot; <a href="/api/learning/stats" target="_blank">Learning</a>
+      <a href="#" onclick="openLlmModal();return false;">LLM</a> &middot; <a href="/api/sources" target="_blank">Fontes</a> &middot; <a href="/docs" target="_blank">API</a> &middot; <a href="/api/learning/stats" target="_blank">Learning</a>
     </div>
   </aside>
 
@@ -817,6 +868,60 @@
       </div>
     </div>
   </main>
+
+  <!-- LLM Config Modal -->
+  <div class="llm-overlay" id="llmOverlay">
+    <div class="llm-modal">
+      <div class="llm-modal-head">
+        <div>
+          <h3>Provedores de LLM</h3>
+          <p>Escolha o modelo, a ordem de uso e ligue/desligue. O agente tenta de cima pra baixo e cai pro próximo se um falhar.</p>
+        </div>
+        <button class="llm-close" onclick="closeLlmModal()">&times;</button>
+      </div>
+      <div class="llm-body">
+        <div class="llm-key-row">
+          <input type="password" id="llmAdminKey" placeholder="Chave admin (X-API-Key) — necessária em produção">
+          <button class="llm-btn ghost" onclick="saveAdminKey()">Salvar chave</button>
+        </div>
+        <div class="llm-providers" id="llmList"></div>
+        <div class="llm-add">
+          <h4>Adicionar provedor</h4>
+          <div class="llm-grid">
+            <div class="llm-field">
+              <label>Provedor</label>
+              <select id="addProvider" onchange="onProviderChange()"></select>
+            </div>
+            <div class="llm-field">
+              <label>Modelo</label>
+              <input list="modelList" id="addModel" placeholder="ex: MiniMax-M2">
+              <datalist id="modelList"></datalist>
+            </div>
+            <div class="llm-field full">
+              <label>API key do provedor</label>
+              <input type="password" id="addKey" placeholder="cole a chave (criptografada no servidor)">
+            </div>
+            <div class="llm-field full">
+              <label>Base URL (opcional — só p/ endpoint custom)</label>
+              <input id="addBaseUrl" placeholder="deixe vazio p/ usar o padrão do provedor">
+            </div>
+            <div class="llm-field">
+              <label>Ordem (menor = primeiro)</label>
+              <input type="number" id="addPriority" value="100">
+            </div>
+            <div class="llm-field">
+              <label>Temperatura</label>
+              <input type="number" step="0.1" min="0" max="2" id="addTemp" value="0.3">
+            </div>
+          </div>
+          <div style="margin-top:14px;display:flex;gap:12px;align-items:center;">
+            <button class="llm-btn" onclick="addProvider()">Adicionar</button>
+            <span class="llm-msg" id="llmMsg"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script>
     // ── State ──────────────────────────────────────────────
@@ -1189,6 +1294,149 @@
         document.getElementById('statusLabel').textContent = 'Offline';
       }
     }
+
+    // ── LLM Config ─────────────────────────────────────────
+    let llmSupported = null;
+
+    function adminHeaders() {
+      const k = localStorage.getItem('murdock_admin_key') || '';
+      return k ? { 'X-API-Key': k } : {};
+    }
+    function setLlmMsg(text, kind) {
+      const el = document.getElementById('llmMsg');
+      el.textContent = text || '';
+      el.className = 'llm-msg' + (kind ? ' ' + kind : '');
+    }
+    function saveAdminKey() {
+      const v = document.getElementById('llmAdminKey').value.trim();
+      if (v) localStorage.setItem('murdock_admin_key', v);
+      else localStorage.removeItem('murdock_admin_key');
+      setLlmMsg('Chave salva.', 'ok');
+      loadProviders();
+    }
+    async function openLlmModal() {
+      document.getElementById('llmOverlay').classList.add('open');
+      document.getElementById('llmAdminKey').value = localStorage.getItem('murdock_admin_key') || '';
+      if (!llmSupported) await loadSupported();
+      await loadProviders();
+    }
+    function closeLlmModal() {
+      document.getElementById('llmOverlay').classList.remove('open');
+      setLlmMsg('');
+    }
+    async function loadSupported() {
+      try {
+        const r = await fetch('/api/llm-providers/supported');
+        llmSupported = await r.json();
+        const sel = document.getElementById('addProvider');
+        sel.innerHTML = llmSupported.providers.map(p => `<option value="${p.key}">${p.label}</option>`).join('');
+        onProviderChange();
+      } catch (e) { setLlmMsg('Falha ao carregar catálogo de provedores.', 'err'); }
+    }
+    function onProviderChange() {
+      if (!llmSupported) return;
+      const key = document.getElementById('addProvider').value;
+      const p = llmSupported.providers.find(x => x.key === key);
+      const dl = document.getElementById('modelList');
+      dl.innerHTML = ((p && p.models) || []).map(m => `<option value="${m.name}">`).join('');
+      if (p && p.models && p.models.length) document.getElementById('addModel').value = p.models[0].name;
+      document.getElementById('addBaseUrl').placeholder = (p && p.default_base_url) || 'endpoint OpenAI-compatible';
+    }
+    async function loadProviders() {
+      const list = document.getElementById('llmList');
+      try {
+        const r = await fetch('/api/llm-providers', { headers: adminHeaders() });
+        if (r.status === 401) { list.innerHTML = '<div class="llm-empty">Informe a chave admin acima para gerenciar os provedores.</div>'; return; }
+        renderProviders(await r.json());
+      } catch (e) { list.innerHTML = '<div class="llm-empty">Erro ao carregar.</div>'; }
+    }
+    function renderProviders(items) {
+      const list = document.getElementById('llmList');
+      if (!items.length) { list.innerHTML = '<div class="llm-empty">Nenhum provedor cadastrado. Adicione um abaixo.</div>'; return; }
+      list.innerHTML = items.map(p => {
+        const tierBadge = (p.tier === 'tested' || p.tier === 'recommended') ? `<span class="llm-badge ${p.tier}">${p.tier}</span>` : '';
+        const inUse = p.in_use ? '<span class="llm-badge inuse">em uso</span>' : '';
+        const keyInfo = p.has_api_key ? `key ••${p.api_key_suffix}` : '<span style="color:var(--red)">sem key</span>';
+        return `
+        <div class="llm-card ${p.in_use ? 'inuse' : ''}">
+          <div class="ord">
+            <button onclick="moveProvider(${p.id}, -1)" title="Subir">&#9650;</button>
+            <button onclick="moveProvider(${p.id}, 1)" title="Descer">&#9660;</button>
+          </div>
+          <div class="info">
+            <div class="name">${p.label || p.provider} ${inUse} ${tierBadge}</div>
+            <div class="meta">${p.provider} &middot; ${p.default_model} &middot; ${keyInfo} &middot; ordem ${p.priority}</div>
+          </div>
+          <div class="acts">
+            <button class="llm-icon-btn" onclick="testProvider(${p.id})" title="Testar conexão">testar</button>
+            <button class="llm-icon-btn danger" onclick="delProvider(${p.id})" title="Remover">remover</button>
+            <label class="llm-switch" title="Ligar/desligar">
+              <input type="checkbox" ${p.active ? 'checked' : ''} onchange="toggleProvider(${p.id}, this.checked)">
+              <span class="track"></span>
+            </label>
+          </div>
+        </div>`;
+      }).join('');
+    }
+    async function patchProvider(id, patch) {
+      const r = await fetch(`/api/llm-providers/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...adminHeaders() }, body: JSON.stringify(patch) });
+      if (!r.ok) { setLlmMsg('Falha — confira a chave admin.', 'err'); return false; }
+      return true;
+    }
+    async function toggleProvider(id, active) {
+      const ok = await patchProvider(id, { active });
+      if (ok) setLlmMsg(active ? 'Provedor ativado.' : 'Provedor desativado.', 'ok');
+      loadProviders();
+    }
+    async function moveProvider(id, dir) {
+      const r = await fetch('/api/llm-providers', { headers: adminHeaders() });
+      let items = await r.json();
+      const idx = items.findIndex(x => x.id === id);
+      const swap = idx + dir;
+      if (swap < 0 || swap >= items.length) return;
+      [items[idx], items[swap]] = [items[swap], items[idx]];
+      for (let i = 0; i < items.length; i++) {
+        const want = (i + 1) * 10;
+        if (items[i].priority !== want) await patchProvider(items[i].id, { priority: want });
+      }
+      loadProviders();
+    }
+    async function delProvider(id) {
+      if (!confirm('Remover este provedor de LLM?')) return;
+      const r = await fetch(`/api/llm-providers/${id}`, { method: 'DELETE', headers: adminHeaders() });
+      if (r.ok || r.status === 204) { setLlmMsg('Provedor removido.', 'ok'); loadProviders(); }
+      else setLlmMsg('Falha ao remover.', 'err');
+    }
+    async function addProvider() {
+      const body = {
+        provider: document.getElementById('addProvider').value,
+        default_model: document.getElementById('addModel').value.trim(),
+        api_key: document.getElementById('addKey').value.trim(),
+        base_url: document.getElementById('addBaseUrl').value.trim() || null,
+        priority: parseInt(document.getElementById('addPriority').value) || 100,
+        temperature: parseFloat(document.getElementById('addTemp').value) || 0.3,
+      };
+      if (!body.default_model) { setLlmMsg('Informe o modelo.', 'err'); return; }
+      try {
+        const r = await fetch('/api/llm-providers', { method: 'POST', headers: { 'Content-Type': 'application/json', ...adminHeaders() }, body: JSON.stringify(body) });
+        if (!r.ok) { const e = await r.json().catch(() => ({})); setLlmMsg(e.detail || 'Falha ao adicionar — confira a chave admin.', 'err'); return; }
+        document.getElementById('addKey').value = '';
+        setLlmMsg('Provedor adicionado.', 'ok');
+        loadProviders();
+      } catch (e) { setLlmMsg('Erro de rede.', 'err'); }
+    }
+    async function testProvider(id) {
+      setLlmMsg('Testando conexão…', '');
+      try {
+        const r = await fetch(`/api/llm-providers/${id}/test`, { method: 'POST', headers: adminHeaders() });
+        const d = await r.json();
+        if (d.ok) setLlmMsg(`OK · ${d.model} · ${d.latency_ms}ms · "${d.sample}"`, 'ok');
+        else setLlmMsg(`Falhou: ${d.detail}`, 'err');
+      } catch (e) { setLlmMsg('Erro ao testar.', 'err'); }
+    }
+    document.getElementById('llmOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'llmOverlay') closeLlmModal();
+    });
 
     // ── Init ──────────────────────────────────────────────
     document.getElementById('userInput').focus();

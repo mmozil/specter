@@ -132,6 +132,37 @@ class Feedback(Base):
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# Provedores de LLM — escolha/ordem/on-off configurável (padrão Tier Agent)
+# ═══════════════════════════════════════════════════════════════════════════
+
+class LlmProvider(Base):
+    """Provedor de LLM configurável pelo usuário (qual modelo, em que ordem, ligado ou não).
+
+    O agente percorre os ATIVOS por `priority` (menor = primeiro) e faz fallback pro
+    próximo se um falhar. `api_key_enc` é Fernet-encrypted (ver src/core/encryption.py).
+    """
+    __tablename__ = "llm_providers"
+
+    id = Column(Integer, primary_key=True)
+    provider = Column(String(64), nullable=False)        # minimax|anthropic|openai|gemini|openrouter|deepseek|nous|local
+    default_model = Column(String(128), nullable=False)
+    api_key_enc = Column(Text, nullable=False, default="")
+    base_url = Column(Text)                              # override do endpoint OpenAI-compatible
+    temperature = Column(Float, default=0.3, nullable=False)
+    max_tokens = Column(Integer, default=4096, nullable=False)
+    timeout_s = Column(Integer, default=60, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
+    priority = Column(Integer, default=100, nullable=False)  # menor = usado primeiro
+    label = Column(String(120))                          # apelido opcional (ex: "Primário")
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    updated_at = Column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
+
+    __table_args__ = (
+        Index("ix_llm_providers_active_priority", "active", "priority"),
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # Client Memory — perfil persistente do cliente
 # ═══════════════════════════════════════════════════════════════════════════
 

@@ -24,9 +24,10 @@ httpx[http2]>=0.28.0
 beautifulsoup4>=4.12.0
 pypdf>=5.0.0
 
-# ── Auth ───────────────────────────────────────────────────────
+# ── Auth / Crypto ──────────────────────────────────────────────
 python-jose[cryptography]>=3.3.0
 passlib[bcrypt]>=1.7.4
+cryptography>=43.0.0          # Fernet — criptografa API keys de LLM no banco
 
 # ── Utils ──────────────────────────────────────────────────────
 python-dotenv>=1.0.0
