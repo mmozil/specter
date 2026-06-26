@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 from src.core.config import settings
 from src.core.database import async_session, init_db
@@ -81,6 +81,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Redirect do domínio antigo → novo (consolidação da marca Specter).
+# 302 (temporário, reversível). murdock.hovio.com.br → specter.hovio.com.br, preservando path.
+@app.middleware("http")
+async def _redirect_legacy_domain(request, call_next):
+    host = (request.headers.get("host") or "").split(":")[0]
+    if host == "murdock.hovio.com.br":
+        target = request.url.replace(scheme="https", netloc="specter.hovio.com.br")
+        return RedirectResponse(str(target), status_code=302)
+    return await call_next(request)
+
 
 # API routes
 app.include_router(auth_router, prefix="/api")

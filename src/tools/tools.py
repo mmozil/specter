@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 # ── Deps compartilhadas ───────────────────────────────────────────────────
 
 @dataclass
-class MurdockDeps:
+class SpecterDeps:
     """Dependências injetadas em todas as tools."""
     db: AsyncSession
 
@@ -24,7 +24,7 @@ class MurdockDeps:
 # ═══════════════════════════════════════════════════════════════════════════
 
 async def search_law(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     query: str,
     source_type: Optional[str] = None,
 ) -> str:
@@ -237,7 +237,7 @@ def _calc_lucro_real(receita_mensal: float, lucro_mensal: float) -> dict:
 
 
 async def calculate_tax(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     regime: str,
     receita_mensal: float,
     atividade: str = "servicos",
@@ -293,7 +293,7 @@ async def calculate_tax(
 # ═══════════════════════════════════════════════════════════════════════════
 
 async def check_ncm(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     query: str,
 ) -> str:
     """Consulta NCM (Nomenclatura Comum do Mercosul) na knowledge base.
@@ -372,7 +372,7 @@ REGIMES ESPECÍFICOS:
 
 
 async def reform_2026(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     query: str,
 ) -> str:
     """Consulta sobre a Reforma Tributária do Consumo (CBS/IBS).
@@ -412,7 +412,7 @@ async def reform_2026(
 # ═══════════════════════════════════════════════════════════════════════════
 
 async def credit_recovery(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     query: str,
     regime: str = "lucro_real",
 ) -> str:
@@ -509,7 +509,7 @@ _CALENDARIO_FISCAL = {
 
 
 async def calendar(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     regime: str = "simples",
     mes: int = 0,
 ) -> str:
@@ -558,7 +558,7 @@ async def calendar(
 # ═══════════════════════════════════════════════════════════════════════════
 
 async def jurisprudence(
-    ctx: RunContext[MurdockDeps],
+    ctx: RunContext[SpecterDeps],
     query: str,
     court: str = "ambos",
 ) -> str:

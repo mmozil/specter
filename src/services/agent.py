@@ -1,6 +1,6 @@
 """Agente Specter — especialista tributário brasileiro com Pydantic AI.
 
-(identificadores internos `murdock_agent`/`MurdockDeps` mantidos — repo/infra ainda 'murdock';
+(identificadores internos `specter_agent`/`SpecterDeps` mantidos — repo/infra ainda 'murdock';
 a marca de produto é Specter.)
 """
 import logging
@@ -25,7 +25,7 @@ from src.services.memory import (
 )
 from src.services.learning import learn_from_engaged_conversation
 from src.tools.tools import (
-    MurdockDeps,
+    SpecterDeps,
     search_law,
     calculate_tax,
     check_ncm,
@@ -148,9 +148,9 @@ primary_model = OpenAIModel(
     ),
 )
 
-murdock_agent = Agent(
+specter_agent = Agent(
     primary_model,
-    deps_type=MurdockDeps,
+    deps_type=SpecterDeps,
     system_prompt=SYSTEM_PROMPT,
     tools=[
         search_law,
@@ -343,7 +343,7 @@ async def chat(
     full_prompt = user_message + dynamic_ctx if dynamic_ctx else user_message
 
     # Rodar agente — cadeia de modelos vinda do banco (escolha/ordem/on-off do usuário)
-    deps = MurdockDeps(db=db)
+    deps = SpecterDeps(db=db)
     from src.services.llm_config import ProvidersAllDisabled
 
     try:
@@ -365,7 +365,7 @@ async def chat(
     last_err = None
     for model_obj, msettings, label in chain:
         try:
-            result = await murdock_agent.run(
+            result = await specter_agent.run(
                 full_prompt, deps=deps, model=model_obj,
                 model_settings=msettings, message_history=message_history,
             )
@@ -438,7 +438,7 @@ async def chat_stream(
     dynamic_ctx = await _build_dynamic_prompt(db, client_id)
     full_prompt = user_message + dynamic_ctx if dynamic_ctx else user_message
 
-    deps = MurdockDeps(db=db)
+    deps = SpecterDeps(db=db)
     from src.services.llm_config import ProvidersAllDisabled
 
     try:
@@ -461,7 +461,7 @@ async def chat_stream(
     for model_obj, msettings, label in chain:
         full_response = []
         try:
-            async with murdock_agent.run_stream(
+            async with specter_agent.run_stream(
                 full_prompt, deps=deps, model=model_obj,
                 model_settings=msettings, message_history=message_history,
             ) as result:
