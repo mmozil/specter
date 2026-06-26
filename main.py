@@ -73,6 +73,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if settings.ENVIRONMENT == "development" else [
+        "https://specter.hovio.com.br",
         "https://murdock.hovio.com.br",
         "https://hovio.com.br",
     ],
