@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Murdock é um agente IA especializado em direito tributário, contábil e fiscal brasileiro. Deploy em `murdock.hovio.com.br`.
 
-> **Marca = "Specter" (jun/2026).** O produto foi renomeado de "m.murdock" → **Specter** (persona "Matt Murdock/Daredevil" → "Specter", o espectro que enxerga riscos ocultos). O rebrand é **só de marca/UI + persona do system prompt**; repo (`mmozil/murdock`), domínio (`murdock.hovio.com.br`), Coolify e identificadores internos (`murdock_agent`, `MurdockDeps`) seguem `murdock`. Renomear domínio/repo é tarefa de infra separada (pendente, se desejado).
+> **Rebrand COMPLETO = "Specter" (jun/2026).** Renomeado de "m.murdock" → **Specter** (persona "Matt Murdock/Daredevil" → "Specter", o espectro que enxerga riscos ocultos): marca/UI + persona do system prompt + identificadores internos (`murdock_agent`→`specter_agent`, `MurdockDeps`→`SpecterDeps`).
+> - **Domínio: `specter.hovio.com.br`** (DNS A proxied → 46.224.220.223; zona `hovio.com.br` na **conta Cloudflare Tier**, zone `cfb5bdd17e99fa38aa877aac99f8be29`). `murdock.hovio.com.br` → **302 redirect** p/ specter (middleware em `main.py`).
+> - **Repo: `mmozil/specter`** (antigo `mmozil/murdock` redireciona no GitHub). Coolify `git_repository=mmozil/specter`; **app uuid inalterado** `xw0wks4oo0gcsossss4kowc4` (comando de deploy não muda).
 
 ## Autenticação (login + cadastro, jun/2026)
 
@@ -141,8 +143,8 @@ API_KEY=...                # Auth para endpoints admin
 
 > **Workflow (regra do dono, jun/2026):** SEMPRE commitar as mudanças sem perguntar — fluxo padrão `commit → push → deploy → verificar`. Não deixar trabalho só local. Deploy é **manual** (sem webhook), via API Coolify abaixo.
 
-- **Repo**: github.com/mmozil/murdock (público)
-- **Domínio**: murdock.hovio.com.br
+- **Repo**: github.com/mmozil/specter (público; antigo /murdock redireciona)
+- **Domínio**: specter.hovio.com.br (murdock.hovio.com.br → 302 redirect)
 - **Coolify App**: `xw0wks4oo0gcsossss4kowc4`
 - **Coolify PostgreSQL**: `sk4csooc8g8owkkk444sckos` (pgvector:pg16)
 - **Coolify Redis**: `yg800wc0kws4k8o444g44gg4`
