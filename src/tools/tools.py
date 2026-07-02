@@ -205,7 +205,7 @@ def _calc_lucro_presumido(receita_mensal: float, atividade: str) -> dict:
         "total_mensal": f"R${total:,.2f}",
         "total_anual": f"R${total * 12:,.2f}",
         "aliquota_efetiva": f"{aliq_efetiva:.4%}",
-        "nota": "IN RFB 2.306/2026: presunções majoradas em 20% para receita >R$5M/ano",
+        "nota": "IN RFB 2.306/2026: acrescimo de 10% (x1,10) nos percentuais de presuncao, APENAS sobre a parcela da receita bruta que exceder R$5M/ano (limite trimestral proporcional R$1,25M). IRPJ desde 01/01/2026; CSLL desde 01/04/2026 (noventena). Este calculo NAO aplica a majoracao — recalcular se a receita anual passar de R$5M.",
     }
 
 
@@ -349,11 +349,11 @@ CRONOGRAMA DA REFORMA TRIBUTÁRIA DO CONSUMO (EC 132/2023 + LC 214/2025):
   • IBS continua em 0,1% (teste)
   • ICMS e ISS mantidos
 
-2029-2032 — Transição gradual ICMS/ISS → IBS
+2029-2032 — Transição gradual ICMS/ISS → IBS (LC 214/2025, art. 128 ADCT)
   • 2029: ICMS/ISS reduzem 10% (IBS sobe proporcionalmente)
-  • 2030: ICMS/ISS reduzem 25%
-  • 2031: ICMS/ISS reduzem 50%
-  • 2032: ICMS/ISS reduzem 75%
+  • 2030: ICMS/ISS reduzem 20%
+  • 2031: ICMS/ISS reduzem 30%
+  • 2032: ICMS/ISS reduzem 40%
 
 2033 — IBS pleno
   • ICMS e ISS extintos
